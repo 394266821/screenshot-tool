@@ -20,22 +20,24 @@
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             padding: 40px;
-            max-width: 900px;
+            max-width: 500px;
             width: 100%;
+            text-align: center;
         }
-        h1 { text-align: center; color: #333; margin-bottom: 10px; font-size: 2em; }
-        .subtitle { text-align: center; color: #666; margin-bottom: 30px; }
-        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        input[type="text"] {
-            flex: 1;
-            padding: 15px 20px;
+        h1 { color: #333; margin-bottom: 10px; font-size: 2em; }
+        .subtitle { color: #666; margin-bottom: 30px; }
+        input {
+            width: 100%;
+            padding: 15px;
             border: 2px solid #e0e0e0;
             border-radius: 10px;
             font-size: 16px;
+            margin-bottom: 15px;
         }
-        input[type="text"]:focus { outline: none; border-color: #667eea; }
+        input:focus { outline: none; border-color: #667eea; }
         button {
-            padding: 15px 30px;
+            width: 100%;
+            padding: 15px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
@@ -43,140 +45,54 @@
             font-size: 16px;
             cursor: pointer;
             font-weight: 600;
+            margin-bottom: 20px;
         }
-        button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4); }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        .preview-area {
-            border: 2px dashed #ddd;
-            border-radius: 10px;
-            min-height: 400px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: #f9f9f9;
-            overflow: auto;
+        button:hover { transform: translateY(-2px); }
+        .tips { 
+            background: #f0f4ff; 
+            border-radius: 10px; 
+            padding: 15px; 
+            font-size: 13px; 
+            color: #555;
+            text-align: left;
         }
-        .preview-area.empty { color: #999; font-size: 16px; }
-        .preview-area img { max-width: 100%; border-radius: 8px; }
-        .loading { display: none; text-align: center; color: #666; }
-        .loading.active { display: block; }
-        .spinner {
-            width: 40px; height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .download-btn { display: none; margin: 20px auto 0; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
-        .download-btn.active { display: block; }
-        .error { color: #e74c3c; text-align: center; margin-top: 15px; display: none; padding: 15px; background: #ffeaea; border-radius: 10px; }
-        .error.active { display: block; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>📸 网页截图工具</h1>
-        <p class="subtitle">基于 ScreenshotAPI.net 服务</p>
+        <p class="subtitle">基于 pagepeeker.com 服务</p>
 
-        <div class="input-group">
-            <input type="text" id="urlInput" placeholder="请输入网页URL (例如: baidu.com)" />
-            <button id="captureBtn">截取屏幕</button>
+        <input type="text" id="urlInput" placeholder="输入网址，例如: baidu.com" />
+        <button onclick="openScreenshot()">生成截图</button>
+
+        <div class="tips">
+            <strong>💡 使用方法：</strong><br>
+            1. 输入要截图的网址<br>
+            2. 点击"生成截图"<br>
+            3. 在新页面右键保存图片
         </div>
-
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p>正在截取网页，请稍候...</p>
-        </div>
-
-        <div class="error" id="error"></div>
-
-        <div class="preview-area empty" id="previewArea">
-            截图预览区
-        </div>
-
-        <button class="download-btn" id="downloadBtn">💾 下载图片</button>
     </div>
 
     <script>
-        const urlInput = document.getElementById('urlInput');
-        const captureBtn = document.getElementById('captureBtn');
-        const loading = document.getElementById('loading');
-        const error = document.getElementById('error');
-        const previewArea = document.getElementById('previewArea');
-        const downloadBtn = document.getElementById('downloadBtn');
-
-        let capturedImage = null;
-
-        // 使用 screenshotapi.net 的免费演示端点
-        const API_BASE = 'https://screenshotapi.net/api/v1/screenshot';
-
-        captureBtn.addEventListener('click', async () => {
-            const url = urlInput.value.trim();
-            if (!url) { showError('请输入网址'); return; }
-
-            let finalUrl = url;
-            if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                finalUrl = 'https://' + url;
+        function openScreenshot() {
+            let url = document.getElementById('urlInput').value.trim();
+            if (!url) { alert('请输入网址'); return; }
+            
+            // 去掉 http:// 或 https://
+            if (url.startsWith('http://')) {
+                url = url.substring(7);
+            } else if (url.startsWith('https://')) {
+                url = url.substring(8);
             }
-
-            await captureScreenshot(finalUrl);
-        });
-
-        async function captureScreenshot(url) {
-            showLoading(true);
-            hideError();
-            previewArea.innerHTML = '截图预览区';
-            previewArea.classList.add('empty');
-            downloadBtn.classList.remove('active');
-            capturedImage = null;
-            captureBtn.disabled = true;
-
-            try {
-                // 直接使用图片链接
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                
-                // 使用 screenshotapi.net 演示
-                const screenshotUrl = `${API_BASE}?url=${encodeURIComponent(url)}&width=1280&height=800&fresh=true`;
-                
-                await new Promise((resolve, reject) => {
-                    img.onload = resolve;
-                    img.onerror = reject;
-                    img.src = screenshotUrl;
-                });
-                
-                capturedImage = img.src;
-                showPreview(capturedImage);
-                
-            } catch (err) {
-                showError('截图失败: ' + err.message + '\n\n💡 可尝试直接访问: https://screenshotapi.net/demo');
-            } finally {
-                showLoading(false);
-                captureBtn.disabled = false;
-            }
+            
+            // 使用 pagepeeker
+            window.open('https://pagepeeker.com/thumbs/?size=xl&url=' + encodeURIComponent(url), '_blank');
         }
-
-        function showPreview(imageData) {
-            previewArea.innerHTML = `<img src="${imageData}" alt="截图预览" />`;
-            previewArea.classList.remove('empty');
-            downloadBtn.classList.add('active');
-        }
-
-        function showError(message) { error.textContent = message; error.classList.add('active'); }
-        function hideError() { error.classList.remove('active'); }
-        function showLoading(show) { loading.classList.toggle('active', show); }
-
-        downloadBtn.addEventListener('click', () => {
-            if (!capturedImage) return;
-            const link = document.createElement('a');
-            link.download = `screenshot-${Date.now()}.png`;
-            link.href = capturedImage;
-            link.click();
+        
+        document.getElementById('urlInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') openScreenshot();
         });
-
-        urlInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') captureBtn.click(); });
     </script>
 </body>
 </html>
