@@ -1,8 +1,5 @@
 // API 路由：/api/screenshot
-// 使用 Playwright 截取网页截图
-
-import { chromium } from 'playwright';
-import { isSupported } from '@vercel/kv';
+// 使用 screenshotapi.net 服务截图
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +7,6 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const url = searchParams.get('url');
 
-  // 测试 1: 缺少 url 参数
   if (!url) {
     return Response.json(
       { error: 'Missing url parameter', code: 'MISSING_URL' },
@@ -19,12 +15,10 @@ export async function GET(request) {
   }
 
   let targetUrl = url;
-  // 测试 2: 自动补全协议
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     targetUrl = 'https://' + url;
   }
 
-  // 测试 3: 验证 URL 格式
   try {
     new URL(targetUrl);
   } catch {
@@ -34,39 +28,19 @@ export async function GET(request) {
     );
   }
 
-  let browser;
   try {
-    // 启动浏览器
-    browser = await chromium.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-      ],
-    });
-
-    const page = await browser.newPage();
+    // 使用 screenshotapi.net 服务
+    // 免费版有使用限制，生产环境建议使用付费版或自建服务
+    const screenshotUrl = `https://screenshotapi.net/screenshot?url=${encodeURIComponent(targetUrl)}&width=1280&height=800&fresh=true&wait_for=2000`;
     
-    // 设置视口大小
-    await page.setViewportSize({ width: 1280, height: 800 });
-
-    // 导航到目标页面
-    await page.goto(targetUrl, {
-      waitUntil: 'networkidle',
-      timeout: 25000,
-    });
-
-    // 截图
-    const screenshot = await page.screenshot({
-      type: 'png',
-      fullPage: false,
-    });
-
-    await browser.close();
-
-    // 返回图片
+    const response = await fetch(screenshotUrl);
+    
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
+    }
+    
+    const screenshot = await response.arrayBuffer();
+    
     return new Response(screenshot, {
       headers: {
         'Content-Type': 'image/png',
@@ -76,17 +50,12 @@ export async function GET(request) {
     });
 
   } catch (error) {
-    if (browser) {
-      await browser.close();
-    }
-
-    // 测试 4: 超时和错误处理
     console.error('Screenshot error:', error.message);
-
     return Response.json(
       { 
         error: `Screenshot failed: ${error.message}`,
-        code: 'SCREENSHOT_ERROR'
+        code: 'SCREENSHOT_ERROR',
+        hint: 'Free API has usage limits. Consider using a paid service or self-hosted solution.'
       },
       { status: 500 }
     );

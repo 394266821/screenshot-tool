@@ -1,17 +1,5 @@
 {
   "name": "screenshot-tool",
   "version": "1.0.0",
-  "description": "网页截图工具",
-  "scripts": {
-    "dev": "vercel dev",
-    "build": "echo 'No build step required'"
-  },
-  "dependencies": {
-    "@sparticuz/chromium": "^123.0.0",
-    "@vercel/kv": "^1.0.0",
-    "playwright": "^1.42.0"
-  },
-  "devDependencies": {
-    "vercel": "^37.0.0"
-  }
+  "description": "网页截图工具"
 }
