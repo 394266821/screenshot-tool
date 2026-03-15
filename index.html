@@ -6,6 +6,7 @@
     <title>网页截图工具 📸</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -15,105 +16,287 @@
             align-items: center;
             padding: 20px;
         }
+
         .container {
             background: white;
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             padding: 40px;
-            max-width: 500px;
+            max-width: 900px;
             width: 100%;
-            text-align: center;
         }
-        h1 { color: #333; margin-bottom: 10px; font-size: 2em; }
-        .subtitle { color: #666; margin-bottom: 30px; }
-        input {
-            width: 100%;
-            padding: 15px;
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 15px 20px;
             border: 2px solid #e0e0e0;
             border-radius: 10px;
             font-size: 16px;
-            margin-bottom: 15px;
+            transition: border-color 0.3s;
         }
-        input:focus { outline: none; border-color: #667eea; }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
         button {
-            width: 100%;
-            padding: 15px;
+            padding: 15px 30px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
             border-radius: 10px;
             font-size: 16px;
             cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
             font-weight: 600;
-            margin-bottom: 20px;
         }
-        button:hover { transform: translateY(-2px); }
-        .result { 
-            background: #f0f4ff; 
-            border-radius: 10px; 
-            padding: 20px; 
-            display: none;
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
         }
-        .result.active { display: block; }
-        .result a {
-            display: block;
-            padding: 15px;
-            background: #11998e;
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .preview-area {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            min-height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f9f9f9;
+            overflow: auto;
+        }
+
+        .preview-area.empty {
+            color: #999;
             font-size: 16px;
         }
-        .tips { 
-            background: #fff3cd; 
-            border-radius: 10px; 
-            padding: 15px; 
-            font-size: 13px; 
-            color: #856404;
-            text-align: left;
+
+        .preview-area img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #666;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .download-btn {
+            display: none;
+            margin: 20px auto 0;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .download-btn.active {
+            display: block;
+        }
+
+        .error {
+            color: #e74c3c;
+            text-align: center;
+            margin-top: 15px;
+            display: none;
+            padding: 15px;
+            background: #ffeaea;
+            border-radius: 10px;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        .tips {
+            background: #f0f4ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .tips strong {
+            color: #667eea;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>📸 网页截图工具</h1>
-        <p class="subtitle">基于 Thum.io 服务</p>
+        <p class="subtitle">基于 ScreenshotOne API，支持截取任意网站</p>
 
-        <input type="text" id="urlInput" placeholder="输入网址，例如: example.com" />
-        <button onclick="generateLink()">生成截图链接</button>
-
-        <div class="result" id="result">
-            <p style="margin-bottom:10px;color:#666;">✅ 链接生成成功！</p>
-            <a id="screenshotLink" href="#" target="_blank">🔗 点击打开截图</a>
-            <p style="margin-top:15px;font-size:13px;color:#666;">截图打开后，右键图片选择"另存为"保存</p>
+        <div class="input-group">
+            <input type="text" id="urlInput" placeholder="请输入网页URL (例如: example.com)" />
+            <button id="captureBtn">截取屏幕</button>
         </div>
 
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>正在截取网页，请稍候...</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="preview-area empty" id="previewArea">
+            截图预览区
+        </div>
+
+        <button class="download-btn" id="downloadBtn">💾 下载图片</button>
+
         <div class="tips">
-            <strong>💡 使用方法：</strong><br>
-            1. 输入要截图的网址<br>
-            2. 点击"生成截图链接"<br>
-            3. 点击链接打开截图，右键保存
+            <strong>💡 提示：</strong>基于 ScreenshotOne API 截图，支持截取任意网站！<br>
+            <strong>🔧 维护：</strong>如遇问题，请联系管理员检查 API 配置。
         </div>
     </div>
 
     <script>
-        function generateLink() {
-            let url = document.getElementById('urlInput').value.trim();
-            if (!url) { alert('请输入网址'); return; }
+        const urlInput = document.getElementById('urlInput');
+        const captureBtn = document.getElementById('captureBtn');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const previewArea = document.getElementById('previewArea');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        let capturedImage = null;
+
+        // 获取 API 地址
+        const API_URL = '/api/screenshot';
+
+        captureBtn.addEventListener('click', async () => {
+            const url = urlInput.value.trim();
             
-            if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                url = 'https://' + url;
+            if (!url) {
+                showError('请输入有效的网址');
+                return;
             }
-            
-            // 使用 thum.io 服务，直接跳转
-            const screenshotUrl = 'https://thum.io/' + url;
-            
-            document.getElementById('screenshotLink').href = screenshotUrl;
-            document.getElementById('result').classList.add('active');
+
+            let finalUrl = url;
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                finalUrl = 'https://' + url;
+            }
+
+            try {
+                new URL(finalUrl);
+            } catch (e) {
+                showError('请输入有效的网址格式');
+                return;
+            }
+
+            await captureScreenshot(finalUrl);
+        });
+
+        async function captureScreenshot(url) {
+            showLoading(true);
+            hideError();
+            previewArea.innerHTML = '截图预览区';
+            previewArea.classList.add('empty');
+            downloadBtn.classList.remove('active');
+            capturedImage = null;
+
+            captureBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_URL}?url=${encodeURIComponent(url)}`, {
+                    signal: AbortSignal.timeout(60000)
+                });
+                
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error || '截图失败');
+                }
+                
+                const blob = await response.blob();
+                capturedImage = URL.createObjectURL(blob);
+                showPreview(capturedImage);
+                
+            } catch (err) {
+                showError('截图失败: ' + err.message);
+            } finally {
+                showLoading(false);
+                captureBtn.disabled = false;
+            }
         }
-        
-        document.getElementById('urlInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') generateLink();
+
+        function showPreview(imageData) {
+            previewArea.innerHTML = `<img src="${imageData}" alt="截图预览" />`;
+            previewArea.classList.remove('empty');
+            downloadBtn.classList.add('active');
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.classList.add('active');
+        }
+
+        function hideError() {
+            error.classList.remove('active');
+        }
+
+        function showLoading(show) {
+            loading.classList.toggle('active', show);
+        }
+
+        downloadBtn.addEventListener('click', () => {
+            if (!capturedImage) return;
+
+            const link = document.createElement('a');
+            link.download = `screenshot-${Date.now()}.png`;
+            link.href = capturedImage;
+            link.click();
+        });
+
+        urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                captureBtn.click();
+            }
         });
     </script>
 </body>
