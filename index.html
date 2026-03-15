@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网页截屏工具 📸</title>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .options {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .option label {
+            color: #555;
+            font-size: 14px;
+        }
+
+        .option input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .preview-area {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            min-height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f9f9f9;
+            overflow: auto;
+            position: relative;
+        }
+
+        .preview-area.empty {
+            color: #999;
+            font-size: 16px;
+        }
+
+        .preview-area img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #666;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .download-btn {
+            display: none;
+            margin: 20px auto 0;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .download-btn.active {
+            display: block;
+        }
+
+        .error {
+            color: #e74c3c;
+            text-align: center;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        .tips {
+            background: #f0f4ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .tips strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📸 网页截屏工具</h1>
+        <p class="subtitle">输入网址，轻松截图</p>
+
+        <div class="input-group">
+            <input type="text" id="urlInput" placeholder="请输入网页URL (例如: https://www.example.com)" />
+            <button id="captureBtn">截取屏幕</button>
+        </div>
+
+        <div class="options">
+            <div class="option">
+                <input type="checkbox" id="fullPage" checked />
+                <label for="fullPage">截取完整页面</label>
+            </div>
+            <div class="option">
+                <input type="checkbox" id="useProxy" />
+                <label for="useProxy">使用代理 (CORS)</label>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>正在截取网页，请稍候...</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="preview-area empty" id="previewArea">
+            截图预览区
+        </div>
+
+        <button class="download-btn" id="downloadBtn">💾 下载图片</button>
+
+        <div class="tips">
+            <strong>💡 提示：</strong>由于浏览器的安全限制，部分网站可能无法直接截图。
+            如遇问题，可尝试使用代理选项或使用浏览器扩展。
+        </div>
+    </div>
+
+    <script>
+        const urlInput = document.getElementById('urlInput');
+        const captureBtn = document.getElementById('captureBtn');
+        const fullPage = document.getElementById('fullPage');
+        const useProxy = document.getElementById('useProxy');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const previewArea = document.getElementById('previewArea');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        let capturedImage = null;
+
+        // CORS 代理列表
+        const corsProxies = [
+            'https://corsproxy.io/?',
+            'https://api.allorigins.win/raw?url=',
+            'https://cors-anywhere.herokuapp.com/'
+        ];
+
+        captureBtn.addEventListener('click', async () => {
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                showError('请输入有效的网址');
+                return;
+            }
+
+            // 确保 URL 包含协议
+            let finalUrl = url;
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                finalUrl = 'https://' + url;
+            }
+
+            // 验证 URL 格式
+            try {
+                new URL(finalUrl);
+            } catch (e) {
+                showError('请输入有效的网址格式');
+                return;
+            }
+
+            await captureScreenshot(finalUrl);
+        });
+
+        async function captureScreenshot(url) {
+            showLoading(true);
+            hideError();
+            previewArea.innerHTML = '截图预览区';
+            previewArea.classList.add('empty');
+            downloadBtn.classList.remove('active');
+            capturedImage = null;
+
+            captureBtn.disabled = true;
+
+            try {
+                // 创建 iframe 来加载目标页面
+                const iframe = document.createElement('iframe');
+                iframe.style.cssText = 'position: absolute; left: -9999px; top: 0; width: 1200px; height: 800px; border: none;';
+                document.body.appendChild(iframe);
+
+                // 使用代理
+                let targetUrl = url;
+                if (useProxy.checked && corsProxies.length > 0) {
+                    targetUrl = corsProxies[0] + encodeURIComponent(url);
+                }
+
+                await new Promise((resolve, reject) => {
+                    iframe.onload = resolve;
+                    iframe.onerror = reject;
+                    
+                    // 设置超时
+                    setTimeout(() => reject(new Error('加载超时')), 15000);
+                    
+                    iframe.src = targetUrl;
+                });
+
+                // 等待页面完全加载
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                try {
+                    // 尝试使用 html2canvas 截图
+                    const canvas = await html2canvas(iframe.contentDocument.body, {
+                        useCORS: true,
+                        allowTaint: true,
+                        backgroundColor: '#ffffff',
+                        scale: 2,
+                        logging: false,
+                        windowWidth: iframe.contentWindow.innerWidth,
+                        windowHeight: iframe.contentWindow.innerHeight
+                    });
+
+                    capturedImage = canvas.toDataURL('image/png');
+                    showPreview(capturedImage);
+                } catch (canvasError) {
+                    // 如果 iframe 方法失败，尝试直接截图（会有跨域限制）
+                    showError('截图失败: ' + canvasError.message + '\n\n💡 建议：某些网站有跨域保护，可尝试使用浏览器扩展进行截图。');
+                }
+
+                document.body.removeChild(iframe);
+
+            } catch (err) {
+                showError('加载页面失败: ' + err.message + '\n\n💡 提示：部分网站有反爬虫机制，请尝试其他方法。');
+            } finally {
+                showLoading(false);
+                captureBtn.disabled = false;
+            }
+        }
+
+        function showPreview(imageData) {
+            previewArea.innerHTML = `<img src="${imageData}" alt="截图预览" />`;
+            previewArea.classList.remove('empty');
+            downloadBtn.classList.add('active');
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.classList.add('active');
+        }
+
+        function hideError() {
+            error.classList.remove('active');
+        }
+
+        function showLoading(show) {
+            if (show) {
+                loading.classList.add('active');
+            } else {
+                loading.classList.remove('active');
+            }
+        }
+
+        downloadBtn.addEventListener('click', () => {
+            if (!capturedImage) return;
+
+            const link = document.createElement('a');
+            link.download = `screenshot-${Date.now()}.png`;
+            link.href = capturedImage;
+            link.click();
+        });
+
+        // 支持回车键截图
+        urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                captureBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>
