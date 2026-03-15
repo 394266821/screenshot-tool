@@ -140,6 +140,16 @@
             display: block;
         }
 
+        .fallback-btn {
+            display: none;
+            margin: 10px auto 0;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .fallback-btn.active {
+            display: block;
+        }
+
         .error {
             color: #e74c3c;
             text-align: center;
@@ -190,10 +200,11 @@
         </div>
 
         <button class="download-btn" id="downloadBtn">💾 下载图片</button>
+        <button class="fallback-btn" id="fallbackBtn">🔗 使用备用方案打开截图</button>
 
         <div class="tips">
-            <strong>💡 提示：</strong>基于 ScreenshotOne API 截图，支持截取任意网站！<br>
-            <strong>🔧 维护：</strong>如遇问题，请联系管理员检查 API 配置。
+            <strong>💡 提示：</strong>基于 ScreenshotOne API 截图<br>
+            <strong>🔧 维护：</strong>如 API 不可用，将自动使用备用方案
         </div>
     </div>
 
@@ -204,10 +215,11 @@
         const error = document.getElementById('error');
         const previewArea = document.getElementById('previewArea');
         const downloadBtn = document.getElementById('downloadBtn');
+        const fallbackBtn = document.getElementById('fallbackBtn');
 
         let capturedImage = null;
+        let currentUrl = '';
 
-        // 获取 API 地址
         const API_URL = '/api/screenshot';
 
         captureBtn.addEventListener('click', async () => {
@@ -234,11 +246,13 @@
         });
 
         async function captureScreenshot(url) {
+            currentUrl = url;
             showLoading(true);
             hideError();
             previewArea.innerHTML = '截图预览区';
             previewArea.classList.add('empty');
             downloadBtn.classList.remove('active');
+            fallbackBtn.classList.remove('active');
             capturedImage = null;
 
             captureBtn.disabled = true;
@@ -259,6 +273,8 @@
                 
             } catch (err) {
                 showError('截图失败: ' + err.message);
+                // 显示备用方案按钮
+                showFallbackOption(url);
             } finally {
                 showLoading(false);
                 captureBtn.disabled = false;
@@ -269,6 +285,26 @@
             previewArea.innerHTML = `<img src="${imageData}" alt="截图预览" />`;
             previewArea.classList.remove('empty');
             downloadBtn.classList.add('active');
+        }
+
+        function showFallbackOption(url) {
+            // 提取域名
+            let domain = url;
+            if (domain.startsWith('https://')) {
+                domain = domain.substring(8);
+            } else if (domain.startsWith('http://')) {
+                domain = domain.substring(7);
+            }
+            if (domain.includes('/')) {
+                domain = domain.split('/')[0];
+            }
+            
+            const thumIoUrl = 'https://thum.io/' + domain;
+            
+            fallbackBtn.onclick = () => {
+                window.open(thumIoUrl, '_blank');
+            };
+            fallbackBtn.classList.add('active');
         }
 
         function showError(message) {
