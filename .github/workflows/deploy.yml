@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: 20
       - name: Install Dependencies
-        run: npm ci
+        run: npm install
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25
         with:
